@@ -1,0 +1,769 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Peak - Game Library</title>
+    <!-- Incluimos Tailwind CSS por CDN para que funcionen las clases del iframe -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        :root{
+            --bg-color:#0a0a0f;
+            --text-color:#fff;
+            --card-bg:#1a1a24;
+            --header-bg:rgba(0,0,0,.35);
+            --placeholder-bg:linear-gradient(135deg,#2a2a3a,#1a1a28);
+            --accent-glow:rgba(139,92,246,0.4);
+        }
+        body.theme-light{
+            --bg-color:#f4f5f8;
+            --text-color:#1a1a1a;
+            --card-bg:#ffffff;
+            --header-bg:rgba(255,255,255,.8);
+            --placeholder-bg:linear-gradient(135deg,#e8e8f0,#d0d0e0);
+            --accent-glow:rgba(139,92,246,0.25);
+        }
+        body.theme-glass{
+            --bg-color:#0a0a12;
+            --text-color:#fff;
+            --card-bg:rgba(255,255,255,.07);
+            --header-bg:rgba(255,255,255,.08);
+            --placeholder-bg:linear-gradient(135deg,rgba(255,255,255,.12),rgba(255,255,255,.05));
+            --accent-glow:rgba(255,255,255,0.3);
+        }
+        body{
+            font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+            background:var(--bg-color);
+            color:var(--text-color);
+            overflow-x:hidden;
+            min-height:100vh;
+            transition:background .4s,color .4s;
+        }
+        .bg-layer{
+            position:fixed;
+            inset:0;
+            z-index:0;
+            background-color: #000;
+            background-image:url('https://i.ibb.co/6RPdqzMc/image.png');
+            background-size:contain;
+            background-position:center;
+            background-repeat:no-repeat;
+            transition:background-image .6s ease,filter .6s ease,opacity .4s,background-position .6s ease;
+            filter:brightness(.72) saturate(1.15);
+        }
+        body.theme-light .bg-layer{background-color: #e4e4eb; filter:brightness(.9) saturate(.9);opacity:.85}
+        body.theme-glass .bg-layer{filter:brightness(.6) saturate(1.3)}
+        .bg-layer::after{
+            content:'';
+            position:absolute;
+            inset:0;
+            background:linear-gradient(to bottom,rgba(0,0,0,.45) 0%,rgba(0,0,0,.2) 35%,rgba(0,0,0,.65) 100%);
+            pointer-events:none;
+            transition:background .4s;
+        }
+        body.theme-light .bg-layer::after{background:linear-gradient(to bottom,rgba(255,255,255,.35) 0%,rgba(255,255,255,.1) 35%,rgba(0,0,0,.15) 100%)}
+        
+        .app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column}
+        
+        .status-bar{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            padding:10px 24px;
+            background:rgba(0,0,0,.6);
+            backdrop-filter:blur(16px);
+            border-bottom:1px solid rgba(80,255,120,.15);
+            font-size:13px;
+            color:#7CFC9A;
+            gap:16px;
+        }
+        body.theme-light .status-bar{background:rgba(255,255,255,.8);border-bottom-color:rgba(0,0,0,.08);color:#1a7a3a}
+        .status-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+        .status-pill{
+            display:flex;
+            align-items:center;
+            gap:6px;
+            background:rgba(0,0,0,.45);
+            border:1px solid rgba(80,255,120,.25);
+            border-radius:20px;
+            padding:5px 12px;
+            font-weight:500;
+            white-space:nowrap;
+        }
+        body.theme-light .status-pill{background:rgba(0,0,0,.06);border-color:rgba(0,0,0,.12)}
+        .status-pill .dot{width:7px;height:7px;border-radius:50%;background:#7CFC9A;box-shadow:0 0 6px #7CFC9A}
+        
+        .status-search{
+            flex:1;
+            max-width:650px;
+            display:flex;
+            align-items:center;
+            gap:10px;
+            background:rgba(0,0,0,.5);
+            border:1px solid rgba(80,255,120,.3);
+            border-radius:24px;
+            padding:8px 20px;
+            color:#7CFC9A;
+            box-shadow:inset 0 2px 5px rgba(0,0,0,0.3);
+            transition:all 0.3s ease;
+        }
+        .status-search:focus-within {
+            border-color:#7CFC9A;
+            box-shadow:0 0 12px rgba(124,252,154,0.3), inset 0 2px 5px rgba(0,0,0,0.3);
+        }
+        body.theme-light .status-search{background:rgba(0,0,0,.06);border-color:rgba(0,0,0,.15);color:#1a7a3a;box-shadow:none}
+        .status-search input{background:transparent;border:none;outline:none;color:inherit;font-size:14px;width:100%}
+        .status-search input::placeholder{color:rgba(124,252,154,.6)}
+        body.theme-light .status-search input::placeholder{color:rgba(26,122,58,.6)} 
+
+        header{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            padding:16px 32px;
+            background:var(--header-bg);
+            backdrop-filter:blur(16px);
+            border-bottom:1px solid rgba(255,255,255,.08);
+            transition:background .4s;
+        }
+        body.theme-light header{border-bottom-color:rgba(0,0,0,.08)}
+        
+        .brand-logo {
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            color: #fff;
+            text-decoration: none;
+            background: linear-gradient(135deg, #a855f7, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-right: 20px;
+        }
+        body.theme-light .brand-logo {
+            background: linear-gradient(135deg, #7c3aed, #db2777);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .nav-left{display:flex;align-items:center;gap:32px}
+        .nav-item{
+            color:rgba(255,255,255,.6);
+            font-size:15px;
+            font-weight:600;
+            text-decoration:none;
+            cursor:pointer;
+            transition:color .2s;
+            position:relative;
+            padding-bottom:4px;
+        }
+        body.theme-light .nav-item{color:rgba(0,0,0,.55)}
+        .nav-item:hover,.nav-item.active{color:var(--text-color)}
+        .nav-item.active::after{
+            content:'';
+            position:absolute;
+            left:0;
+            bottom:-2px;
+            width:100%;
+            height:2.5px;
+            background:#8b5cf6;
+            border-radius:2px;
+            box-shadow:0 0 8px #8b5cf6;
+        }
+        
+        .nav-right{display:flex;align-items:center;gap:16px;color:rgba(255,255,255,.8);font-size:14px}
+        body.theme-light .nav-right{color:rgba(0,0,0,.7)}
+        .nav-right .icon-btn{
+            width:38px;
+            height:38px;
+            border-radius:50%;
+            background:rgba(255,255,255,.08);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            cursor:pointer;
+            transition:all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            font-size:16px;
+            border:1px solid rgba(255,255,255,0.08);
+            color:inherit;
+        }
+        body.theme-light .nav-right .icon-btn{background:rgba(0,0,0,.06);border-color:rgba(0,0,0,.08)}
+        .nav-right .icon-btn:hover{
+            background:rgba(139,92,246,0.25);
+            border-color:rgba(139,92,246,0.5);
+            transform:translateY(-3px) scale(1.05);
+            color:#fff;
+        } 
+
+        main{flex:1;padding:32px 32px 60px}
+        
+        .section{margin-bottom:46px}
+        .section-title{
+            font-size:22px;
+            font-weight:700;
+            margin-bottom:20px;
+            letter-spacing:-.3px;
+            text-shadow:0 2px 12px rgba(0,0,0,.8);
+            display:flex;
+            align-items:center;
+            gap:10px;
+        }
+        body.theme-light .section-title{text-shadow:none}
+        
+        /* Grid de juegos adaptativa para que no estén en una sola línea */
+        .games-grid{
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+            gap: 20px;
+            padding: 10px 0;
+        }
+        
+        .game-card{
+            width: 100%;
+            height: 125px;
+            border-radius: 18px;
+            overflow: hidden;
+            cursor: pointer;
+            position: relative;
+            background: var(--card-bg);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border: 1px solid rgba(255,255,255,0.08);
+            transform-origin: center bottom;
+        }
+        body.theme-glass .game-card{backdrop-filter:blur(12px);border-color:rgba(255,255,255,.18)}
+        
+        .game-card:hover{
+            transform:translateY(-8px) scale(1.03);
+            box-shadow:0 22px 45px rgba(0,0,0,0.7), 0 0 20px var(--accent-glow);
+            border-color:rgba(139,92,246,0.6);
+            z-index: 10;
+        }
+        .game-card img{
+            width:100%;
+            height:100%;
+            object-fit:contain;
+            background-color: rgba(0,0,0,0.4);
+            display:block;
+            transition:transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        .game-card:hover img{transform:scale(1.05)}
+        
+        .game-card .placeholder{
+            width:100%;
+            height:100%;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-size:14px;
+            font-weight:600;
+            text-align:center;
+            padding:10px;
+            color:rgba(255,255,255,.7);
+            background:var(--placeholder-bg);
+        }
+        body.theme-light .game-card .placeholder{color:rgba(0,0,0,.55)}
+        
+        .game-card::after{
+            content:'';
+            position:absolute;
+            inset:0;
+            background:linear-gradient(135deg,rgba(255,255,255,.2),transparent 60%);
+            opacity:0;
+            transition:opacity .3s ease;
+            pointer-events:none;
+            border-radius:18px;
+        }
+        .game-card:hover::after{opacity:1} 
+
+        .history-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+            gap: 20px;
+            padding: 10px 0;
+        }
+        .history-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        .history-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.6);
+            border-color: rgba(139,92,246,0.5);
+        }
+        .history-card-img {
+            width: 100%;
+            height: 120px;
+            object-fit: contain;
+            background-color: rgba(0,0,0,0.3);
+        }
+        .history-card-info {
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .history-card-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-color);
+        }
+        .history-card-sub {
+            font-size: 12px;
+            color: rgba(255,255,255,0.5);
+        }
+        body.theme-light .history-card-sub { color: rgba(0,0,0,0.5); }
+
+        .empty-history {
+            text-align: center;
+            padding: 40px;
+            color: rgba(255,255,255,0.4);
+            font-size: 15px;
+            background: rgba(255,255,255,0.02);
+            border-radius: 16px;
+            border: 2px dashed rgba(255,255,255,0.1);
+        }
+
+        .game-player-overlay{
+            position:fixed;
+            inset:0;
+            z-index:999;
+            background:rgba(5,5,8,.94);
+            display:none;
+            flex-direction:column;
+            backdrop-filter:blur(12px);
+        }
+        .game-player-overlay.active{display:flex}
+        .game-player-header{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            padding:14px 28px;
+            background:rgba(0,0,0,.85);
+            border-bottom:1px solid rgba(255,255,255,.1);
+            color:#fff;
+        }
+        .game-player-title{font-size:17px;font-weight:700;letter-spacing:0.5px}
+        .close-game-btn{
+            background:linear-gradient(135deg, #e74c3c, #c0392b);
+            color:#fff;
+            border:none;
+            padding:9px 18px;
+            border-radius:10px;
+            font-weight:600;
+            cursor:pointer;
+            transition:all 0.2s;
+            box-shadow:0 4px 12px rgba(231,76,60,0.4);
+        }
+        .close-game-btn:hover{transform:scale(1.05);background:linear-gradient(135deg, #c0392b, #a93226)}
+        .game-iframe-container{flex:1;width:100%;height:100%;position:relative;display:flex;align-items:center;justify-content:center}
+        .game-iframe-container iframe{width:100%;height:100%;border:none;display:block} 
+
+        .theme-modal-overlay{
+            position:fixed;
+            inset:0;
+            z-index:200;
+            background:rgba(0,0,0,.65);
+            display:none;
+            align-items:center;
+            justify-content:center;
+            backdrop-filter:blur(8px);
+        }
+        .theme-modal-overlay.active{display:flex}
+        
+        .theme-modal{
+            background:#f4f4f7;
+            border-radius:24px;
+            padding:36px 30px 28px;
+            width:380px;
+            max-width:92vw;
+            box-shadow:0 25px 60px rgba(0,0,0,.45);
+            text-align:center;
+            color:#1a1a1a;
+            animation:modalIn .3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 1px solid rgba(255,255,255,0.8);
+        }
+        @keyframes modalIn{
+            from{opacity:0;transform:scale(.88) translateY(15px)}
+            to{opacity:1;transform:scale(1) translateY(0)}
+        }
+        .theme-modal .dots{display:flex;justify-content:center;gap:6px;margin-bottom:20px}
+        .theme-modal .dots span{width:22px;height:4.5px;border-radius:3px;background:#d1d1db;transition:all 0.3s}
+        .theme-modal .dots span.active{background:#8b5cf6;width:32px}
+        
+        .theme-modal h2{font-size:24px;font-weight:700;margin-bottom:8px;color:#111}
+        .theme-modal p{font-size:13.5px;color:#666;margin-bottom:26px}
+        
+        .theme-label{text-align:left;font-size:13px;font-weight:700;color:#555;margin-bottom:12px;text-transform:uppercase;letter-spacing:0.5px}
+        
+        .theme-options{
+            display:grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap:10px;
+            margin-bottom:30px;
+        }
+        .theme-btn{
+            padding:14px 10px;
+            border-radius:14px;
+            border:1.5px solid #e2e2ec;
+            background:#ffffff;
+            color:#333;
+            font-size:14px;
+            font-weight:600;
+            cursor:pointer;
+            transition:all 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+            box-shadow:0 2px 5px rgba(0,0,0,0.03);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .theme-btn:hover{background:#fafafc;border-color:#b8b8d0;transform:translateY(-2px)}
+        .theme-btn.active{
+            background:#8b5cf6;
+            color:#fff;
+            border-color:#7c4fe0;
+            box-shadow:0 6px 16px rgba(139,92,246,0.35);
+        }
+        
+        .theme-actions{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #eaeaf2;padding-top:20px}
+        .btn-skip{background:transparent;color:#888;border:none;font-size:14px;font-weight:600;cursor:pointer;transition:color 0.2s}
+        .btn-skip:hover{color:#333}
+        
+        .theme-actions .right {display: flex; gap: 10px;}
+        .btn-back{background:#e4e4ed;color:#555;border:none;padding:11px 18px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s}
+        .btn-back:hover{background:#d5d5df;color:#222}
+        
+        .btn-next{background:#8b5cf6;color:#fff;border:none;padding:11px 22px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;box-shadow:0 4px 12px rgba(139,92,246,0.3)}
+        .btn-next:hover{background:#7c4fe0;transform:scale(1.03)} 
+
+        @media(max-width:700px){
+            header{padding:12px 16px}
+            main{padding:20px 16px 40px}
+            .games-grid{grid-template-columns: repeat(auto-fill, minmax(140px, 1fr))}
+            .game-card{height:105px;border-radius:14px}
+            .nav-left{gap:16px}
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-layer" id="bgLayer"></div>
+    <div class="app">
+        <div class="status-bar">
+            <div class="status-left">
+                <div class="status-pill"><span>🕒</span><span id="statusClock">15:54</span></div>
+                <div class="status-pill"><span class="dot"></span><span>83°F</span></div>
+                <div class="status-pill"><span>📶</span><span id="statusPing">320 ms</span></div>
+                <div class="status-pill"><span>🔋</span><span id="statusBattery">100%</span></div>
+            </div>
+            <div class="status-search">
+                <span>🔍</span>
+                <input type="text" placeholder="Buscar juegos en la biblioteca..." id="gameSearch">
+            </div>
+        </div>
+
+        <header>
+            <div class="nav-left">
+                <a href="#" class="brand-logo" data-tab="home">PEAK</a>
+                <a class="nav-item active" href="#" data-tab="home">Home</a>
+                <a class="nav-item" href="#" data-tab="library">Game Library</a>
+                <a class="nav-item" href="#" data-tab="store">Play Store</a>
+            </div>
+            <div class="nav-right">
+                <button class="icon-btn" id="settingsBtn" title="Ajustes">⚙</button>
+                <div class="icon-btn" title="Perfil">👤</div>
+                <span id="clock" style="font-weight: 600; margin-left: 5px;">12:39</span>
+            </div>
+        </header>
+
+        <main>
+            <!-- VISTA HOME -->
+            <div id="viewHome">
+                <section class="section">
+                    <h2 class="section-title">Lo más nuevo</h2>
+                    <div class="games-grid" id="tryNewRow">
+                        <!-- HOW DO YOU -->
+                        <div class="game-card" data-bg="url('https://i.ibb.co/B5CGNhXx/image.png')" data-title="How Do You" data-custom-iframe='<iframe src="https://howdoyou.mza.com.ar/" title="howdoyou.mza.com.ar" class="player-frame h-[72vh] w-full touch-none bg-white pointer-events-auto" referrerpolicy="no-referrer" allow="fullscreen; autoplay; clipboard-write; gamepad" sandbox="allow-scripts allow-forms allow-same-origin allow-pointer-lock"></iframe>'>
+                            <img src="https://i.ibb.co/B5CGNhXx/image.png" alt="How Do You">
+                        </div>
+                        <!-- Dude Theft Auto -->
+                        <div class="game-card" data-bg="url('https://i.ibb.co/Zp5TfHZR/image.png')" data-title="Dude Theft Auto" data-url="https://azgames.io/dude-theft-auto.embed">
+                            <img src="https://i.ibb.co/Zp5TfHZR/image.png" alt="Dude Theft Auto">
+                        </div>
+                        <!-- Horror Nun 2 -->
+                        <div class="game-card" data-bg="url('https://i.ibb.co/KprSJ7Gt/image.png')" data-title="Horror Nun 2" data-url="https://azgames.io/horror-nun-2.embed">
+                            <img src="https://i.ibb.co/KprSJ7Gt/image.png" alt="Horror Nun 2">
+                        </div>
+                        <!-- Tower Rise -->
+                        <div class="game-card" data-bg="url('https://i.ibb.co/hJwnC9NS/image.png')" data-title="Tower Rise" data-url="https://azgames.io/tower-rise.embed">
+                            <img src="https://i.ibb.co/hJwnC9NS/image.png" alt="Tower Rise">
+                        </div>
+                        <!-- Escape Road -->
+                        <div class="game-card" data-bg="url('https://i.ibb.co/PzGBZcHh/image.png')" data-title="Escape Road" data-url="https://azgames.io/escape-road.embed">
+                            <img src="https://i.ibb.co/PzGBZcHh/image.png" alt="Escape Road">
+                        </div>
+                        <!-- Tung Sahur Horror -->
+                        <div class="game-card" data-bg="url('https://i.ibb.co/B5CsvVJ2/image.png')" data-title="Tung Sahur Horror" data-url="https://azgames.io/tung-sahur-horror.embed">
+                            <img src="https://i.ibb.co/B5CsvVJ2/image.png" alt="Tung Sahur Horror">
+                        </div>
+                        <!-- Temple Run 2 -->
+                        <div class="game-card" data-bg="url('https://i.ibb.co/mCHMn3q4/image.png')" data-title="Temple Run 2" data-url="https://azgames.io/temple-run-2.embed">
+                            <img src="https://i.ibb.co/mCHMn3q4/image.png" alt="Temple Run 2">
+                        </div>
+                        <!-- Noah's Calculus Tutor -->
+                        <div class="game-card" data-bg="url('https://i.ibb.co/cc0Smj48/image.png')" data-title="Noah's Calculus Tutor" data-url="https://noahsamazingtutoringhelp.github.io/Noahs-Calculus-Tutor/">
+                            <img src="https://i.ibb.co/cc0Smj48/image.png" alt="Noah's Calculus Tutor">
+                        </div>
+                    </div>
+                </section>
+
+                <section class="section">
+                    <h2 class="section-title">Pronto</h2>
+                    <div class="games-grid" id="recommendRow">
+                        <!-- GTA V -->
+                        <div class="game-card" data-bg="url('https://i.ibb.co/GvsM652M/image.png')" data-title="Grand Theft Auto V" data-url="https://deer.tram-gallery.ru/e?stratus=jy0108&name=Grand+Theft+Auto+V+" data-warn="true">
+                            <img src="https://i.ibb.co/s9xVbpPB/image.png" alt="GTA V">
+                        </div>
+                        <!-- GTA Vice City -->
+                        <div class="game-card" data-bg="url('https://i.ibb.co/GvQtDZhM/image.png')" data-title="GTA Vice City" data-url="https://gtavc.armdev.cn/" data-nohistory="true">
+                            <img src="https://i.ibb.co/GvQtDZhM/image.png" alt="GTA Vice City">
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- VISTA GAME LIBRARY -->
+            <div id="viewLibrary" style="display:none;">
+                <section class="section">
+                    <h2 class="section-title">🎮 Juegos que jugaste recientemente</h2>
+                    <div id="playedHistoryContainer"></div>
+                </section>
+            </div>
+
+            <!-- VISTA STORE -->
+            <div id="viewStore" style="display:none;">
+                <section class="section">
+                    <h2 class="section-title">🛍️ Play Store & Extensiones</h2>
+                    <div class="empty-history">Próximamente más juegos y contenidos disponibles en la tienda.</div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- PANTALLA INTEGRADA DEL JUEGO -->
+    <div class="game-player-overlay" id="gamePlayerOverlay">
+        <div class="game-player-header">
+            <span class="game-player-title" id="playerGameTitle">Cargando juego...</span>
+            <button class="close-game-btn" id="closeGameBtn">✕ Salir del Juego</button>
+        </div>
+        <div class="game-iframe-container" id="gameIframeContainer">
+            <iframe id="gameIframe" allow="autoplay; fullscreen; camera; focus-without-user-activation; monetization; gamepad; keyboard-map; xr-spatial-tracking; clipboard-write; web-share; accelerometer; magnetometer; gyroscope; display-capture" allowfullscreen></iframe>
+        </div>
+    </div>
+
+    <!-- MODAL DE TEMAS -->
+    <div class="theme-modal-overlay" id="themeModal">
+        <div class="theme-modal">
+            <div class="dots"><span class="active"></span><span></span></div>
+            <h2>Elige un tema</h2>
+            <p>Puedes cambiarlo más tarde en Ajustes.</p>
+            <div class="theme-label">Tema visual</div>
+            <div class="theme-options">
+                <button class="theme-btn" data-theme="system">🖥️ Sistema</button>
+                <button class="theme-btn active" data-theme="dark">🌙 Oscuro</button>
+                <button class="theme-btn" data-theme="light">☀️ Claro</button>
+                <button class="theme-btn" data-theme="glass">💎 Cristal</button>
+            </div>
+            <div class="theme-actions">
+                <button class="btn-skip" id="themeSkip">Omitir</button>
+                <div class="right">
+                    <button class="btn-back" id="themeBack">Atrás</button>
+                    <button class="btn-next" id="themeNext">Siguiente</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function updateClock(){
+            const now=new Date(),h=String(now.getHours()).padStart(2,'0'),m=String(now.getMinutes()).padStart(2,'0'),t=h+':'+m;
+            document.getElementById('clock').textContent=t;
+            const sc=document.getElementById('statusClock');if(sc)sc.textContent=t;
+        }
+        updateClock();setInterval(updateClock,30000);
+
+        if(navigator.getBattery){
+            navigator.getBattery().then(b=>{
+                const u=()=>{const el=document.getElementById('statusBattery');if(el)el.textContent=Math.round(b.level*100)+'%'};
+                u();b.addEventListener('levelchange',u);
+            }).catch(()=>{});
+        }
+        setInterval(()=>{const el=document.getElementById('statusPing');if(el)el.textContent=(280+Math.floor(Math.random()*80))+' ms'},5000);
+
+        const bgLayer=document.getElementById('bgLayer'),defaultBg="url('https://i.ibb.co/6RPdqzMc/image.png')",themeModal=document.getElementById('themeModal');
+        
+        document.getElementById('settingsBtn').addEventListener('click',()=>themeModal.classList.add('active'));
+        function closeThemeModal(){themeModal.classList.remove('active')}
+        document.getElementById('themeSkip').addEventListener('click',closeThemeModal);
+        document.getElementById('themeNext').addEventListener('click',closeThemeModal);
+        document.getElementById('themeBack').addEventListener('click',closeThemeModal);
+        themeModal.addEventListener('click',e=>{if(e.target===themeModal)closeThemeModal()});
+
+        document.querySelectorAll('.theme-btn').forEach(btn=>{
+            btn.addEventListener('click',()=>{
+                document.querySelectorAll('.theme-btn').forEach(b=>b.classList.remove('active'));
+                btn.classList.add('active');
+                applyTheme(btn.getAttribute('data-theme'));
+            });
+        });
+
+        function applyTheme(theme){
+            document.body.classList.remove('theme-light','theme-glass');
+            if(theme==='light')document.body.classList.add('theme-light');
+            else if(theme==='glass')document.body.classList.add('theme-glass');
+            else if(theme==='system'&&window.matchMedia('(prefers-color-scheme: light)').matches)document.body.classList.add('theme-light');
+            try{localStorage.setItem('theme',theme)}catch(e){}
+        }
+        let savedTheme='dark';try{savedTheme=localStorage.getItem('theme')||'dark'}catch(e){}
+        applyTheme(savedTheme);
+        document.querySelectorAll('.theme-btn').forEach(btn=>btn.classList.toggle('active',btn.getAttribute('data-theme')===savedTheme));
+
+        const navItems = document.querySelectorAll('.nav-item, .brand-logo');
+        const viewHome = document.getElementById('viewHome');
+        const viewLibrary = document.getElementById('viewLibrary');
+        const viewStore = document.getElementById('viewStore');
+
+        navItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                const tab = item.getAttribute('data-tab');
+                
+                if(item.classList.contains('nav-item')) {
+                    document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+                    item.classList.add('active');
+                } else {
+                    document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+                    document.querySelector('.nav-item[data-tab="home"]').classList.add('active');
+                }
+                
+                viewHome.style.display = tab === 'home' ? 'block' : 'none';
+                viewLibrary.style.display = tab === 'library' ? 'block' : 'none';
+                viewStore.style.display = tab === 'store' ? 'block' : 'none';
+
+                if(tab === 'library') {
+                    renderPlayedHistory();
+                }
+            });
+        });
+
+        function getPlayedGames() {
+            try {
+                return JSON.parse(localStorage.getItem('playedGames') || '[]');
+            } catch(e) {
+                return [];
+            }
+        }
+
+        function addPlayedGame(gameData) {
+            let history = getPlayedGames();
+            history = history.filter(item => item.title !== gameData.title);
+            history.unshift(gameData);
+            if(history.length > 10) history.pop();
+            try {
+                localStorage.setItem('playedGames', JSON.stringify(history));
+            } catch(e){}
+        }
+
+        function renderPlayedHistory() {
+            const container = document.getElementById('playedHistoryContainer');
+            const history = getPlayedGames();
+
+            if(history.length === 0) {
+                container.innerHTML = '<div class="empty-history">Aún no has jugado a ningún juego. ¡Explora la biblioteca y prueba uno!</div>';
+                return;
+            }
+
+            let html = '<div class="history-grid">';
+            history.forEach(game => {
+                html += `
+                    <div class="history-card" data-url="${game.url || ''}" data-custom-iframe='${game.customIframe || ''}' data-title="${game.title}" data-bg="${game.bg}" data-warn="${game.warn || ''}" data-nohistory="${game.noHistory || ''}">
+                        <img class="history-card-img" src="${game.img}" alt="${game.title}">
+                        <div class="history-card-info">
+                            <span class="history-card-title">${game.title}</span>
+                            <span class="history-card-sub">Jugado recientemente</span>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+
+            container.querySelectorAll('.history-card').forEach(card => {
+                setupCardEvents(card);
+            });
+        }
+
+        const gamePlayerOverlay = document.getElementById('gamePlayerOverlay'); 
+        const gameIframeContainer = document.getElementById('gameIframeContainer'); 
+        const playerGameTitle = document.getElementById('playerGameTitle'); 
+        const closeGameBtn = document.getElementById('closeGameBtn');
+
+        function setupCardEvents(card) {
+            card.addEventListener('mouseenter',()=>{ 
+                const bg=card.getAttribute('data-bg'); 
+                if(bg){bgLayer.style.backgroundImage=bg;bgLayer.style.filter='brightness(0.65) saturate(1.25)';bgLayer.style.backgroundPosition='center center';} 
+            }); 
+            card.addEventListener('mouseleave',()=>{ 
+                bgLayer.style.backgroundImage=defaultBg;bgLayer.style.filter='brightness(0.72) saturate(1.15)';bgLayer.style.backgroundPosition='center center'; 
+            }); 
+            card.addEventListener('click',()=>{ 
+                const url=card.getAttribute('data-url'); 
+                const warn=card.getAttribute('data-warn'); 
+                const noHistory=card.getAttribute('data-nohistory'); 
+                const customIframe=card.getAttribute('data-custom-iframe'); 
+                const title=card.getAttribute('data-title') || 'Juego'; 
+                const cardBg = card.getAttribute('data-bg');
+                const imgTag = card.querySelector('img');
+                const imgSrc = imgTag ? imgTag.src : '';
+
+                if((!url || url.trim()==='') && !customIframe){alert('Este juego todavía no tiene enlace.');return}
+
+                if(warn==='true'){ 
+                    const ok=confirm('⚠️⚠️ Cuidado si te metes a GTA V se podría guardar en tu historial ⚠️⚠️\n\n¿Quieres continuar?'); 
+                    if(!ok)return; 
+                }
+
+                if(noHistory !== 'true') {
+                    addPlayedGame({ title, url, customIframe, bg: cardBg, img: imgSrc, warn, noHistory });
+                }
+
+                playerGameTitle.textContent = title; 
+
+                if(customIframe && customIframe.trim() !== '') {
+                    gameIframeContainer.innerHTML = customIframe;
+                } else {
+                    gameIframeContainer.innerHTML = `<iframe id="gameIframe" src="${url}" allow="autoplay; fullscreen; camera; focus-without-user-activation; monetization; gamepad; keyboard-map; xr-spatial-tracking; clipboard-write; web-share; accelerometer; magnetometer; gyroscope; display-capture" allowfullscreen style="width:100%; height:100%; border:none;"></iframe>`;
+                }
+
+                gamePlayerOverlay.classList.add('active');
+            });
+        }
+
+        document.querySelectorAll('.game-card').forEach(card => {
+            setupCardEvents(card);
+        });
+
+        closeGameBtn.addEventListener('click', () => {
+            gamePlayerOverlay.classList.remove('active');
+            gameIframeContainer.innerHTML = '';
+        });
+    </script>
+</body>
+</html>
